@@ -8,7 +8,7 @@ namespace DIUnitTests
         public void WhenDependencyAdded_Expect_ManagerCanResolveDependencies()
         {
             DependencyManager dm = new();
-            dm.AddScoped<TestInterface, TestClass1>();
+            dm.AddSingleton<TestInterface, TestClass1>();
 
             var service = dm.GetService<TestInterface>();
             Assert.Equal("Hello World!", service.ReturnString());
@@ -18,16 +18,16 @@ namespace DIUnitTests
         public void WhenAddingDuplicateServices_Expect_ThrowsException()
         {
             DependencyManager dm = new();
-            dm.AddScoped<TestInterface, TestClass1>();
+            dm.AddTransient<TestInterface, TestClass1>();
 
-            Assert.Throws<MappingExistsException>(() => dm.AddScoped<TestInterface, TestClass1>());
+            Assert.Throws<MappingExistsException>(() => dm.AddSingleton<TestInterface, TestClass1>());
         }
 
         [Fact]
         public void WhenAddingDuplicateServicesOfDifferentTypes_Expect_ThrowsException()
         {
             DependencyManager dm = new();
-            dm.AddScoped<TestInterface, TestClass1>();
+            dm.AddSingleton<TestInterface, TestClass1>();
 
             Assert.Throws<MappingExistsException>(() => dm.AddSingleton<TestInterface, TestClass1>());
             Assert.Throws<MappingExistsException>(() => dm.AddTransient<TestInterface, TestClass1>());

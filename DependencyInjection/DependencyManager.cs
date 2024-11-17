@@ -11,18 +11,6 @@ namespace DependencyInjection
         /// </summary>
         private Dictionary<Type, object> activeInterfaces = new();
 
-        public void AddScoped<TInterface, TImplementation>() where TInterface : class
-                                                             where TImplementation : class, TInterface
-                                                          
-        {
-            if (dependentInterfaces.ContainsKey(typeof(TInterface)))
-            {
-                throw new MappingExistsException($"Mapping already exists for typeof {dependentInterfaces.GetType()}");
-            }
-            
-            dependentInterfaces.Add(typeof(TInterface), new(typeof(TImplementation), DependencyLifetime.Scoped));
-        }
-
         public void AddSingleton<TInterface, TImplementation>() where TInterface : class
                                                              where TImplementation : class, TInterface        
         {
