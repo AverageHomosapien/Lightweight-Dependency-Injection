@@ -1,6 +1,6 @@
 ﻿namespace DependencyInjection
 {
-    internal enum DependencyScope
+    internal enum DependencyLifetime
     {
         Singleton,
         Scoped,

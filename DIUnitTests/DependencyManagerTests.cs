@@ -12,7 +12,6 @@ namespace DIUnitTests
 
             var service = dm.GetService<TestInterface>();
             Assert.Equal("Hello World!", service.ReturnString());
-            // spin up different instances and check if they are the same
         }
 
         [Fact]
@@ -40,6 +39,30 @@ namespace DIUnitTests
             DependencyManager dm = new();
 
             Assert.Throws<MappingNotFoundException>(() => dm.GetService<TestInterface>());
+        }
+
+        [Fact]
+        public void WhenCallingSingletonExpect_SameInstanceReturned()
+        {
+            DependencyManager dm = new();
+            dm.AddSingleton<TestInterface, TestClass1>();
+
+            var service1 = dm.GetService<TestInterface>();
+            var service2 = dm.GetService<TestInterface>();
+
+            Assert.Same(service1, service2);
+        }
+
+        [Fact]
+        public void WhenCallingTransientExpect_SameDifferentInstanceReturned()
+        {
+            DependencyManager dm = new();
+            dm.AddTransient<TestInterface, TestClass1>();
+
+            var service1 = dm.GetService<TestInterface>();
+            var service2 = dm.GetService<TestInterface>();
+
+            Assert.NotSame(service1, service2);
         }
     }
 }

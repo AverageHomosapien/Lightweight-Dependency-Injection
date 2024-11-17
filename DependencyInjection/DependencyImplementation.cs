@@ -8,13 +8,13 @@ namespace DependencyInjection
 {
     internal sealed class DependencyImplementation
     {
-        public DependencyImplementation(Type implementationType, DependencyScope scope)
+        public DependencyImplementation(Type implementationType, DependencyLifetime scope)
         {
             ImplementationType = implementationType;
             Scope = scope;
         }
 
         public Type ImplementationType { get; set; }
-        public DependencyScope Scope { get; set; }
+        public DependencyLifetime Scope { get; set; }
     }
 }
