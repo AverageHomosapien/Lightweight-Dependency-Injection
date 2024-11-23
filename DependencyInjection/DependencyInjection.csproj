@@ -7,6 +7,8 @@
 	<Nullable>enable</Nullable>
 	<Authors>CalumHamilton</Authors>
 	<Description>A lightweight dependency injection library</Description>
+	<RootNamespace>Lightweight.Dependency.Injection</RootNamespace>
+	<AssemblyName>Lightweight.Dependency.Injection</AssemblyName>
   </PropertyGroup>
 
 </Project>
