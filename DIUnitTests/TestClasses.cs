@@ -16,6 +16,11 @@ namespace DIUnitTests
         string ReturnString();
     }   
 
+    public interface ITestClass3DependingOnTwo
+    {
+        string ReturnChildString();
+    }
+
     public interface UnusedInterface
     {
         string ReturnString();
@@ -36,6 +41,22 @@ namespace DIUnitTests
             return "Goodbye World!";
         }
     }
+
+    public class TestClass3DependingOnTwo : ITestClass3DependingOnTwo
+    {
+        private readonly TestInterface2 testInterfaceTwo;
+
+        public TestClass3DependingOnTwo(TestInterface2 testInterfaceTwo)
+        {
+            this.testInterfaceTwo = testInterfaceTwo;
+        }
+
+        public string ReturnChildString()
+        {
+            return testInterfaceTwo.ReturnString();
+        }
+    }
+
 
     public class UnusedTestClass : UnusedInterface
     {

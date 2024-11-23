@@ -64,5 +64,16 @@ namespace DIUnitTests
 
             Assert.NotSame(service1, service2);
         }
+
+        [Fact]
+        public void WhenCallingClassThatInheritsInterfaceInConstructor_ExpectResolvedCorrectly()
+        {
+            DependencyManager dm = new();
+            dm.AddSingleton<TestInterface, TestClass1>();
+            dm.AddSingleton<TestInterface2, TestClass2>();
+            dm.AddSingleton<ITestClass3DependingOnTwo, TestClass3DependingOnTwo>();
+            var service = dm.GetService<ITestClass3DependingOnTwo>();
+            Assert.Equal("Goodbye World!", service.ReturnChildString());
+        }
     }
 }
