@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace DependencyInjection
+namespace Lightweight.Dependency.Injection.Exceptions
 {
     [Serializable]
     public class MappingNotFoundException : Exception

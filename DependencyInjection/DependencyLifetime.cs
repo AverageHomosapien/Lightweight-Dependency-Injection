@@ -1,4 +1,4 @@
-﻿namespace DependencyInjection
+﻿namespace Lightweight.Dependency.Injection
 {
     internal enum DependencyLifetime
     {

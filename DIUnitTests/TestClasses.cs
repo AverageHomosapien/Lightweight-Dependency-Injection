@@ -16,11 +16,11 @@ namespace DIUnitTests
         string ReturnString();
     }   
 
-    public interface ITestClass3DependingOnTwo
+    public interface TestInterface3DependingOnTwo
     {
         string ReturnChildString();
     }
-
+    
     public interface UnusedInterface
     {
         string ReturnString();
@@ -42,7 +42,26 @@ namespace DIUnitTests
         }
     }
 
-    public class TestClass3DependingOnTwo : ITestClass3DependingOnTwo
+    public class TestClass1WithMultipleConstructors : TestInterface
+    {
+        private readonly string? testString;
+
+        public TestClass1WithMultipleConstructors()
+        {
+        }
+
+        public TestClass1WithMultipleConstructors(string testString)
+        {
+            this.testString = testString;
+        }
+
+        public string ReturnString()
+        {
+            return testString ?? "Hello World!";
+        }
+    }
+
+    public class TestClass3DependingOnTwo : TestInterface3DependingOnTwo
     {
         private readonly TestInterface2 testInterfaceTwo;
 

@@ -1,4 +1,5 @@
-using DependencyInjection;
+using Lightweight.Dependency.Injection;
+using Lightweight.Dependency.Injection.Exceptions;
 
 namespace DIUnitTests
 {
@@ -9,6 +10,7 @@ namespace DIUnitTests
         {
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface, TestClass1>();
+            dm.Build();
 
             var service = dm.GetService<TestInterface>();
             Assert.Equal("Hello World!", service.ReturnString());
@@ -34,9 +36,31 @@ namespace DIUnitTests
         }
 
         [Fact]
+        public void WhenCallingInstanceBeforeDependencyManagerBuilt_Expect_ThrowsException()
+        {
+            DependencyManager dm = new();
+            dm.AddSingleton<TestInterface, TestClass1>();
+
+            Assert.Throws<InvalidOperationException>(() => dm.GetService<TestInterface>());
+        }
+
+        [Fact]
+        public void WhenCallingInstanceWithMultipleConstructors_Expect_ThrowsException()
+        {
+            DependencyManager dm = new();
+            dm.AddSingleton<TestInterface, TestClass1>();
+            dm.Build();
+
+            var service1 = dm.GetService<TestInterface>();
+
+            Assert.Throws<InvalidOperationException>(() => service1.ReturnString());
+        }
+
+        [Fact]
         public void WhenCallingServicesThatHaventBeenRegistered_Expect_ThrowsException()
         {
             DependencyManager dm = new();
+            dm.Build();
 
             Assert.Throws<MappingNotFoundException>(() => dm.GetService<TestInterface>());
         }
@@ -46,6 +70,7 @@ namespace DIUnitTests
         {
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface, TestClass1>();
+            dm.Build();
 
             var service1 = dm.GetService<TestInterface>();
             var service2 = dm.GetService<TestInterface>();
@@ -58,6 +83,7 @@ namespace DIUnitTests
         {
             DependencyManager dm = new();
             dm.AddTransient<TestInterface, TestClass1>();
+            dm.Build();
 
             var service1 = dm.GetService<TestInterface>();
             var service2 = dm.GetService<TestInterface>();
@@ -71,8 +97,10 @@ namespace DIUnitTests
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface, TestClass1>();
             dm.AddSingleton<TestInterface2, TestClass2>();
-            dm.AddSingleton<ITestClass3DependingOnTwo, TestClass3DependingOnTwo>();
-            var service = dm.GetService<ITestClass3DependingOnTwo>();
+            dm.AddSingleton<TestInterface3DependingOnTwo, TestClass3DependingOnTwo>();
+            dm.Build();
+
+            var service = dm.GetService<TestInterface3DependingOnTwo>();
             Assert.Equal("Goodbye World!", service.ReturnChildString());
         }
     }

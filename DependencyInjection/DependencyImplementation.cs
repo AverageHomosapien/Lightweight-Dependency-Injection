@@ -4,17 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DependencyInjection
+namespace Lightweight.Dependency.Injection
 {
     internal sealed class DependencyImplementation
     {
-        public DependencyImplementation(Type implementationType, DependencyLifetime scope)
+        public DependencyImplementation(object containedObject, Type objectType, DependencyLifetime dependencyScope)
         {
-            ImplementationType = implementationType;
-            Scope = scope;
+            ContainedObject = containedObject;
+            ObjectType = objectType;
+            DependencyScope = dependencyScope;
         }
 
-        public Type ImplementationType { get; set; }
-        public DependencyLifetime Scope { get; set; }
+        public object ContainedObject { get; }
+        public Type ObjectType { get; }
+        public DependencyLifetime DependencyScope { get; }
     }
 }
