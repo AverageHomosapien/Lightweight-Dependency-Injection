@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Runtime.Remoting;
 using Lightweight.Dependency.Injection.Exceptions;
 
 namespace Lightweight.Dependency.Injection
@@ -19,7 +18,7 @@ namespace Lightweight.Dependency.Injection
         private Dictionary<Type, DependencyImplementation> activeInterfaces = new();
 
         public void AddSingleton<TInterface, TImplementation>() where TInterface : class
-                                                             where TImplementation : class, TInterface
+                                                                where TImplementation : class, TInterface
         {
             if (isBuilt)
             {
@@ -64,29 +63,29 @@ namespace Lightweight.Dependency.Injection
 
         public void Build()
         {
-            foreach(KeyValuePair<Type, DependencyRequest> request in requestedInterfaces)
+            foreach(KeyValuePair<Type, DependencyRequest> buildRequest in requestedInterfaces)
             {
-                if (activeInterfaces.ContainsKey(request.Key))
+                if (activeInterfaces.ContainsKey(buildRequest.Key))
                     continue;
 
                 // Each implementation will have 1 constructor
-                ParameterInfo[] constructorParameters = request.Value.ImplementationType.GetConstructors()
+                ParameterInfo[] constructorParameters = buildRequest.Value.ImplementationType.GetConstructors()
                                                                                         .First()
                                                                                         .GetParameters();
                 // If no constructors, then we can just create the instance
                 if (constructorParameters.Length == 0)
                 {
-                    if (request.Value.Scope == DependencyLifetime.Singleton)
+                    if (buildRequest.Value.Scope == DependencyLifetime.Singleton)
                     {
-                        var singletonInstance = Activator.CreateInstance(request.Value.ImplementationType) ?? throw new InvalidOperationException("Failed to create singleton instance");
+                        var singletonInstance = Activator.CreateInstance(buildRequest.Value.ImplementationType) ?? throw new InvalidOperationException("Failed to create singleton instance");
 
                         // Create and store a single reference to the implementation
-                        activeInterfaces.Add(request.Key, new(singletonInstance, request.Value.ImplementationType, request.Value.Scope));
+                        activeInterfaces.Add(buildRequest.Key, new(() => Convert.ChangeType(singletonInstance, buildRequest.Value.ImplementationType), buildRequest.Value.ImplementationType, buildRequest.Value.Scope));
                     }
-                    else if (request.Value.Scope == DependencyLifetime.Transient)
+                    else if (buildRequest.Value.Scope == DependencyLifetime.Transient)
                     {
                         // Create and store a function to create the implementation
-                        activeInterfaces.Add(request.Key, new(() => Activator.CreateInstance(request.Value.ImplementationType), request.Value.ImplementationType, request.Value.Scope));
+                        activeInterfaces.Add(buildRequest.Key, new(() => Convert.ChangeType(Activator.CreateInstance(buildRequest.Value.ImplementationType), buildRequest.Value.ImplementationType), buildRequest.Value.ImplementationType, buildRequest.Value.Scope));
                     }
                     else
                     {
@@ -106,7 +105,7 @@ namespace Lightweight.Dependency.Injection
             isBuilt = true;
         }
 
-        private void RecursivelyBuildReference()
+        private void RecursivelyBuildReference(KeyValuePair<Type, DependencyRequest> buildRequest)
         {
 
         }
@@ -118,18 +117,13 @@ namespace Lightweight.Dependency.Injection
 
             if (requestedInterfaces.TryGetValue(typeof(TInterface), out DependencyRequest? value))
             {
-                // If transient - always return a new instance
-                if (value.Scope == DependencyLifetime.Transient)
-                {
-                    return (TInterface)activeInterfaces[typeof(TInterface)].ContainedObject;
-                }
+                // If singleton - always return same instance
+                //if (value.Scope == DependencyLifetime.Singleton)
+                //{
+                //    return (TInterface)activeInterfaces[typeof(TInterface)].ContainedObject;
+                //}
 
-                if (!activeInterfaces.ContainsKey(typeof(TInterface)))
-                {
-                    return (TInterface)activeInterfaces[typeof(TInterface)].ContainedObject;
-                }
-
-                return (TInterface)activeInterfaces[typeof(TInterface)].ContainedObject;
+                return (TInterface)((Func<object>)activeInterfaces[typeof(TInterface)].ContainedObject)();
             }
             else
             {

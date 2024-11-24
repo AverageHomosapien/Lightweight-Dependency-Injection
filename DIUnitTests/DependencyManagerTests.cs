@@ -48,12 +48,7 @@ namespace DIUnitTests
         public void WhenCallingInstanceWithMultipleConstructors_Expect_ThrowsException()
         {
             DependencyManager dm = new();
-            dm.AddSingleton<TestInterface, TestClass1>();
-            dm.Build();
-
-            var service1 = dm.GetService<TestInterface>();
-
-            Assert.Throws<InvalidOperationException>(() => service1.ReturnString());
+            Assert.Throws<MappingMutipleConstructorException>(() => dm.AddSingleton<TestInterface, TestClass1WithMultipleConstructors>());
         }
 
         [Fact]
