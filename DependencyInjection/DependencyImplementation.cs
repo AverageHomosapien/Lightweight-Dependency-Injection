@@ -15,7 +15,7 @@ namespace Lightweight.Dependency.Injection
             DependencyScope = dependencyScope;
         }
 
-        public object ContainedObject { get; }
+        public Func<object> ContainedObject { get; }
         public Type ObjectType { get; }
         public DependencyLifetime DependencyScope { get; }
     }
