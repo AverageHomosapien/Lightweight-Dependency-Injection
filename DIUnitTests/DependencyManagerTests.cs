@@ -98,5 +98,17 @@ namespace DIUnitTests
             var service = dm.GetService<TestInterface3DependingOnTwo>();
             Assert.Equal("Goodbye World!", service.ReturnChildString());
         }
+
+        [Fact]
+        public void WhenAddingDependenciesInTheWrongOrder_ExpectResolvedCorrectly()
+        {
+            DependencyManager dm = new();
+            dm.AddSingleton<TestInterface3DependingOnTwo, TestClass3DependingOnTwo>();
+            dm.AddSingleton<TestInterface2, TestClass2>();
+            dm.Build();
+
+            var service = dm.GetService<TestInterface3DependingOnTwo>();
+            Assert.Equal("Goodbye World!", service.ReturnChildString());
+        }
     }
 }
