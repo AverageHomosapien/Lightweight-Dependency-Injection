@@ -61,7 +61,7 @@ namespace DIUnitTests
         }
 
         [Fact]
-        public void WhenCallingSingletonExpect_SameInstanceReturned()
+        public void WhenCallingSingleton_Expect_SameInstanceReturned()
         {
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface, TestClass1>();
@@ -74,7 +74,7 @@ namespace DIUnitTests
         }
 
         [Fact]
-        public void WhenCallingTransientExpect_SameDifferentInstanceReturned()
+        public void WhenCallingTransient_Expect_SameDifferentInstanceReturned()
         {
             DependencyManager dm = new();
             dm.AddTransient<TestInterface, TestClass1>();
@@ -87,7 +87,7 @@ namespace DIUnitTests
         }
 
         [Fact]
-        public void WhenCallingClassThatInheritsInterfaceInConstructor_ExpectResolvedCorrectly()
+        public void WhenCallingClassThatInheritsInterfaceInConstructor_Expect_ResolvedCorrectly()
         {
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface, TestClass1>();
@@ -100,7 +100,7 @@ namespace DIUnitTests
         }
 
         [Fact]
-        public void WhenAddingDependenciesInTheWrongOrder_ExpectResolvedCorrectly()
+        public void WhenAddingDependenciesInTheWrongOrder_Expect_ResolvedCorrectly()
         {
             DependencyManager dm = new();
             dm.AddSingleton<TestInterface3DependingOnTwo, TestClass3DependingOnTwo>();
