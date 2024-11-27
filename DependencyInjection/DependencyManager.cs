@@ -11,13 +11,21 @@ namespace Lightweight.Dependency.Injection
         /// <summary>
         /// Holds a set of requested interface -> implementations
         /// </summary>
-        private Dictionary<Type, DependencyRequest> requestedInterfaces = new();
+        private Dictionary<Type, DependencyRequest> userDefinedDependencyRequests = new();
 
         /// <summary>
         /// Holds a set of active instances of dependency interfaces
         /// </summary>
-        private Dictionary<Type, DependencyImplementation> activeInterfaces = new();
+        private Dictionary<Type, DependencyImplementation> activeDependencies = new();
 
+        /// <summary>
+        /// Used for adding a Singleton instance of an Interface -> Implementation Mapping
+        /// </summary>
+        /// <typeparam name="TInterface"></typeparam>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="MappingMutipleConstructorException">Thrown for classes with multiple constructors</exception>
+        /// <exception cref="MappingExistsException"></exception>
         public void AddSingleton<TInterface, TImplementation>() where TInterface : class
                                                                 where TImplementation : class, TInterface
         {
@@ -32,12 +40,12 @@ namespace Lightweight.Dependency.Injection
                 throw new MappingMutipleConstructorException("Cannot add dependencies for a class with multiple constructors");
             }
 
-            if (requestedInterfaces.ContainsKey(typeof(TInterface)))
+            if (userDefinedDependencyRequests.ContainsKey(typeof(TInterface)))
             {
-                throw new MappingExistsException($"Mapping already exists for typeof {requestedInterfaces.GetType()}");
+                throw new MappingExistsException($"Mapping already exists for typeof {userDefinedDependencyRequests.GetType()}");
             }
 
-            requestedInterfaces.Add(typeof(TInterface), new(typeof(TImplementation), DependencyLifetime.Singleton));
+            userDefinedDependencyRequests.Add(typeof(TInterface), new(typeof(TImplementation), DependencyLifetime.Singleton));
         }
 
         public void AddTransient<TInterface, TImplementation>() where TInterface : class
@@ -54,12 +62,12 @@ namespace Lightweight.Dependency.Injection
                 throw new MappingMutipleConstructorException("Cannot add dependencies for a class with multiple constructors");
             }
 
-            if (requestedInterfaces.ContainsKey(typeof(TInterface)))
+            if (userDefinedDependencyRequests.ContainsKey(typeof(TInterface)))
             {
-                throw new MappingExistsException($"Mapping already exists for typeof {requestedInterfaces.GetType()}");
+                throw new MappingExistsException($"Mapping already exists for typeof {userDefinedDependencyRequests.GetType()}");
             }
 
-            requestedInterfaces.Add(typeof(TInterface), new(typeof(TImplementation), DependencyLifetime.Transient));
+            userDefinedDependencyRequests.Add(typeof(TInterface), new(typeof(TImplementation), DependencyLifetime.Transient));
         }
 
         public TInterface GetService<TInterface>() where TInterface : class
@@ -67,88 +75,97 @@ namespace Lightweight.Dependency.Injection
             if (!isBuilt)
                 throw new InvalidOperationException("Cannot request a service prior to the container being built");
 
-            if (!requestedInterfaces.TryGetValue(typeof(TInterface), out DependencyRequest? value))
+            if (!userDefinedDependencyRequests.TryGetValue(typeof(TInterface), out DependencyRequest? value))
                 throw new MappingNotFoundException($"Mapping not found for typeof {typeof(TInterface)}");
 
-            return (TInterface)((Func<object>)activeInterfaces[typeof(TInterface)].ContainedObject)();
+            return (TInterface)activeDependencies[typeof(TInterface)].ContainedObject();
         }
 
         public void Build()
         {
-            foreach(KeyValuePair<Type, DependencyRequest> buildRequest in requestedInterfaces)
+            foreach(KeyValuePair<Type, DependencyRequest> buildRequest in userDefinedDependencyRequests)
             {
-                RecursivelyBuildDependencies(buildRequest.Key, buildRequest.Value);
+                BuildDependency(buildRequest.Key, buildRequest.Value);
             }
 
             isBuilt = true;
         }
 
-        private void RecursivelyBuildDependencies(Type typeofInterface, DependencyRequest buildRequest)
+        /// <summary>
+        /// Builds a Dependency for a requested scope
+        /// </summary>
+        /// <param name="typeofInterface"></param>
+        /// <param name="buildRequest"></param>
+        /// <exception cref="MappingNotFoundException"></exception>
+        private void BuildDependency(Type typeofInterface, DependencyRequest buildRequest)
         {
-            if (activeInterfaces.ContainsKey(typeofInterface))
+            // Since we sometimes need to build dependencies out of order (e.g. if a user has requested to build class B that depends on class A, before requesting to build class A)
+            if (activeDependencies.ContainsKey(typeofInterface))
                 return;
 
             // Each implementation will have 1 constructor
-            ParameterInfo[] constructorParameters = GetParametersFromType(buildRequest.ImplementationType);
+            IEnumerable<Type> constructorParameterTypes = GetTypedConstructorParamsOfType(buildRequest.ImplementationType).ToList();
 
             // If no constructors, then we can just create the instance
-            if (constructorParameters.Length == 0)
+            if (!constructorParameterTypes.Any())
             {
-                CreateNewObjectFromInterface(typeofInterface, buildRequest);
-
+                CreateInjectableDependency(typeofInterface, buildRequest);
                 return;
             }
 
-            foreach (var param in constructorParameters)
+            // Building up our tree of dependencies for each object (to ensure they exist when we try and create the object that relies on them)
+            foreach (var paramType in constructorParameterTypes)
             {
-                if (!requestedInterfaces.TryGetValue(param.ParameterType, out DependencyRequest? depReq))
+                if (!userDefinedDependencyRequests.TryGetValue(paramType, out DependencyRequest? depReq))
                 {
-                    throw new MappingNotFoundException($"Mapping not found for typeof {param.ParameterType}");
+                    throw new MappingNotFoundException($"Mapping not found for typeof {paramType}");
                 }
 
                 // Need to deal with the fact that some of the dependent interfaces may not yet be created
-                if (!activeInterfaces.ContainsKey(param.ParameterType))
+                if (!activeDependencies.ContainsKey(paramType))
                 {
                     var dep = new DependencyRequest(depReq.ImplementationType, depReq.Scope);
-                    RecursivelyBuildDependencies(param.ParameterType, dep);
+                    BuildDependency(paramType, dep);
                 }
             }
 
-            CreateNewObjectFromInterface(typeofInterface, buildRequest, constructorParameters);
+            CreateInjectableDependency(typeofInterface, buildRequest, constructorParameterTypes);
         }
 
-        private Func<object> CreateNewObjectFromInterface(Type typeofInterface, DependencyRequest buildRequest, ParameterInfo[]? parameterInfo = null)
+        private Func<object> CreateInjectableDependency(Type typeofInterface, DependencyRequest buildRequest, IEnumerable<Type>? constructorTypes = null)
         {
-            var paramTypes = parameterInfo?.Select(p => p.ParameterType);
-            object[]? constructorsArgs = paramTypes?.Select(par => CreateNewObjectFromInterface(par, requestedInterfaces[par],
-                                                                  GetParametersFromType(par))())
-                                                    .ToArray();
+            // Recursively creates all the dependencies needed for an object constructor and returns the methods to create the object
+            IEnumerable<Func<object>>? constructorGenerators = constructorTypes?.Select(par => CreateInjectableDependency(par, userDefinedDependencyRequests[par], GetTypedConstructorParamsOfType(par)));
+            
+            // Execute all the methods to create the objects
+            object[]? constructorArgs = constructorGenerators?.Select(constructor => constructor())?
+                                                              .ToArray();
 
-            if (activeInterfaces.TryGetValue(typeofInterface, out DependencyImplementation? existing))
+            if (activeDependencies.TryGetValue(typeofInterface, out DependencyImplementation? existing))
             {
                 return existing.ContainedObject;
             }
 
             if (buildRequest.Scope == DependencyLifetime.Singleton)
             {
-                var singletonInstance = Activator.CreateInstance(buildRequest.ImplementationType, constructorsArgs) ?? throw new InvalidOperationException("Failed to create singleton instance");
+                var singletonInstance = Activator.CreateInstance(buildRequest.ImplementationType, constructorArgs) ?? throw new InvalidOperationException("Failed to create singleton instance");
 
                 // Create and store a single reference to the implementation
-                activeInterfaces.Add(typeofInterface, new(() => singletonInstance, buildRequest.ImplementationType, buildRequest.Scope));
+                activeDependencies.Add(typeofInterface, new(() => singletonInstance, buildRequest.ImplementationType, buildRequest.Scope));
             }
             else if (buildRequest.Scope == DependencyLifetime.Transient)
             {
                 // Create and store a function to create the implementation
-                activeInterfaces.Add(typeofInterface, new(() => Activator.CreateInstance(buildRequest.ImplementationType, constructorsArgs), buildRequest.ImplementationType, buildRequest.Scope));
+                activeDependencies.Add(typeofInterface, new(() => Activator.CreateInstance(buildRequest.ImplementationType, constructorArgs), buildRequest.ImplementationType, buildRequest.Scope));
             }
             else
             {
                 throw new InvalidOperationException("Unknown lifetime scope");
             }
 
-            return activeInterfaces[typeofInterface].ContainedObject;
+            return activeDependencies[typeofInterface].ContainedObject;
         }
 
-        private static ParameterInfo[] GetParametersFromType(Type t) => t.GetConstructors().FirstOrDefault()?.GetParameters() ?? [];
+        private static IEnumerable<Type> GetTypedConstructorParamsOfType(Type t) => t.GetConstructors().FirstOrDefault()?.GetParameters().Select(param => param.ParameterType) ?? [];
     }
 }
