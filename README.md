@@ -1,5 +1,7 @@
 # Lightweight Dependency Injection
 
+**Medium Article: https://medium.com/@CalumHamilton/how-does-it-work-dependency-injection-186d9432de4c**
+
 A super lightweight Dependency Injection (DI) tool offering core functionality, including Constructor Injection and a DI Service.
 
 ## Features
